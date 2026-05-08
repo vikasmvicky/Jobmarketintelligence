@@ -6,7 +6,7 @@ import plotly.graph_objects as go
 import joblib
 import json
 import warnings
-import os # Used for robust path joining
+import os
 
 warnings.filterwarnings('ignore')
 
@@ -17,6 +17,16 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+# ── Path Calculation (Absolute Paths) ──
+# __file__ points to /opt/render/project/src/dashboard/app.py
+# We go up two levels to get to /opt/render/project/src/
+# Then we add /data or /models
+try:
+    BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+except:
+    # Fallback for local execution if __file__ isn't defined (rare)
+    BASE_DIR = os.getcwd()
 
 # ── Custom CSS ──
 st.markdown("""
@@ -46,12 +56,18 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ── Load Data (Robust Relative Paths) ──
+# ── Load Data (Fixed with Absolute Paths) ──
 @st.cache_data
 def load_data():
-    # This looks for 'data' folder in the PARENT directory of 'dashboard'
-    data_path = os.path.join('..', 'data', 'data_roles_final.csv')
+    # Construct absolute path
+    data_path = os.path.join(BASE_DIR, 'data', 'data_roles_final.csv')
     
+    # DEBUG: These will appear in Render Logs
+    print(f"DEBUG: Script Dir: {os.path.dirname(os.path.abspath(__file__))}")
+    print(f"DEBUG: Base Dir: {BASE_DIR}")
+    print(f"DEBUG: Data Path: {data_path}")
+    print(f"DEBUG: File Exists? {os.path.exists(data_path)}")
+
     df = pd.read_csv(data_path)
     
     df_sal = df[
@@ -62,11 +78,13 @@ def load_data():
     
     return df, df_sal
 
-# ── Load Model (Robust Relative Paths) ──
+# ── Load Model (Fixed with Absolute Paths) ──
 @st.cache_resource
 def load_model():
-    model_path = os.path.join('..', 'models', 'best_model.pkl')
-    label_map_path = os.path.join('..', 'models', 'label_map.json')
+    model_path = os.path.join(BASE_DIR, 'models', 'best_model.pkl')
+    label_map_path = os.path.join(BASE_DIR, 'models', 'label_map.json')
+    
+    print(f"DEBUG: Model Path: {model_path}")
     
     model = joblib.load(model_path)
     
@@ -79,8 +97,6 @@ def load_model():
 # ── Initialize ──
 df, df_sal = load_data()
 model, label_map = load_model()
-
-# ... (KEEP THE REST OF YOUR CODE EXACTLY THE SAME) ...
 
 # ── Sidebar ──
 st.sidebar.image(
