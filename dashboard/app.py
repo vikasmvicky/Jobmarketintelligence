@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -7,7 +6,7 @@ import plotly.graph_objects as go
 import joblib
 import json
 import warnings
-from pathlib import Path
+import os # Used for robust path joining
 
 warnings.filterwarnings('ignore')
 
@@ -18,12 +17,6 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
-
-# ── Base Paths (Fixes Render File Not Found Error) ──
-# This resolves the directory of app.py (dashboard/) and looks up for data/
-BASE_DIR = Path(__file__).resolve().parent
-DATA_DIR = BASE_DIR.parent / "data"
-MODEL_DIR = BASE_DIR.parent / "models"
 
 # ── Custom CSS ──
 st.markdown("""
@@ -53,11 +46,13 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ── Load Data (Fixed df assignment) ──
+# ── Load Data (Robust Relative Paths) ──
 @st.cache_data
 def load_data():
-    data_path = DATA_DIR / "data_roles_final.csv"
-    df = pd.read_csv(data_path) # Fixed: Added df = assignment
+    # This looks for 'data' folder in the PARENT directory of 'dashboard'
+    data_path = os.path.join('..', 'data', 'data_roles_final.csv')
+    
+    df = pd.read_csv(data_path)
     
     df_sal = df[
         df['salary_final'].notna() &
@@ -67,11 +62,11 @@ def load_data():
     
     return df, df_sal
 
-# ── Load Model (Fixed paths) ──
+# ── Load Model (Robust Relative Paths) ──
 @st.cache_resource
 def load_model():
-    model_path = MODEL_DIR / "best_model.pkl"
-    label_map_path = MODEL_DIR / "label_map.json"
+    model_path = os.path.join('..', 'models', 'best_model.pkl')
+    label_map_path = os.path.join('..', 'models', 'label_map.json')
     
     model = joblib.load(model_path)
     
@@ -79,12 +74,13 @@ def load_model():
         label_map = json.load(f)
     
     label_map = {int(k): v for k, v in label_map.items()}
-    
     return model, label_map
 
 # ── Initialize ──
 df, df_sal = load_data()
 model, label_map = load_model()
+
+# ... (KEEP THE REST OF YOUR CODE EXACTLY THE SAME) ...
 
 # ── Sidebar ──
 st.sidebar.image(
