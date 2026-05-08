@@ -1,3 +1,4 @@
+
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -6,6 +7,8 @@ import plotly.graph_objects as go
 import joblib
 import json
 import warnings
+from pathlib import Path
+
 warnings.filterwarnings('ignore')
 
 # ── Page Config ──
@@ -15,6 +18,12 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+# ── Base Paths (Fixes Render File Not Found Error) ──
+# This resolves the directory of app.py (dashboard/) and looks up for data/
+BASE_DIR = Path(__file__).resolve().parent
+DATA_DIR = BASE_DIR.parent / "data"
+MODEL_DIR = BASE_DIR.parent / "models"
 
 # ── Custom CSS ──
 st.markdown("""
@@ -44,25 +53,36 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ── Load Data ──
+# ── Load Data (Fixed df assignment) ──
 @st.cache_data
 def load_data():
-    df = pd.read_csv('data/data_roles_final.csv')
+    data_path = DATA_DIR / "data_roles_final.csv"
+    df = pd.read_csv(data_path) # Fixed: Added df = assignment
+    
     df_sal = df[
         df['salary_final'].notna() &
         (df['salary_final'] > 20000) &
         (df['salary_final'] < 400000)
     ].copy()
+    
     return df, df_sal
 
+# ── Load Model (Fixed paths) ──
 @st.cache_resource
 def load_model():
-    model = joblib.load('models/best_model.pkl')
-    with open('models/label_map.json') as f:
+    model_path = MODEL_DIR / "best_model.pkl"
+    label_map_path = MODEL_DIR / "label_map.json"
+    
+    model = joblib.load(model_path)
+    
+    with open(label_map_path, "r") as f:
         label_map = json.load(f)
+    
     label_map = {int(k): v for k, v in label_map.items()}
+    
     return model, label_map
 
+# ── Initialize ──
 df, df_sal = load_data()
 model, label_map = load_model()
 
@@ -92,6 +112,7 @@ st.sidebar.markdown("""
 st.sidebar.markdown("---")
 st.sidebar.markdown(
     "Built by **Vikas M Vicky** 🚀")
+
 # ══════════════════════════════════════
 # PAGE 1 — OVERVIEW
 # ══════════════════════════════════════
@@ -213,7 +234,8 @@ if page == "🏠 Overview":
         plot_bgcolor='rgba(0,0,0,0)',
         paper_bgcolor='rgba(0,0,0,0)')
     st.plotly_chart(fig, use_container_width=True)
-    # ══════════════════════════════════════
+
+# ══════════════════════════════════════
 # PAGE 2 — MARKET ANALYSIS
 # ══════════════════════════════════════
 elif page == "📊 Market Analysis":
@@ -278,7 +300,8 @@ elif page == "📊 Market Analysis":
                 pct = count / len(df) * 100
                 st.metric(wtype, f"{count:,}",
                           f"{pct:.1f}% of market")
-                # ══════════════════════════════════════
+
+# ══════════════════════════════════════
 # PAGE 3 — SALARY PREDICTOR
 # ══════════════════════════════════════
 elif page == "🔮 Salary Predictor":
@@ -397,7 +420,8 @@ elif page == "🔮 Salary Predictor":
             plot_bgcolor='rgba(0,0,0,0)',
             paper_bgcolor='rgba(0,0,0,0)')
         st.plotly_chart(fig, use_container_width=True)
-        # ══════════════════════════════════════
+
+# ══════════════════════════════════════
 # PAGE 4 — SKILL GAP FINDER
 # ══════════════════════════════════════
 elif page == "💡 Skill Gap Finder":
